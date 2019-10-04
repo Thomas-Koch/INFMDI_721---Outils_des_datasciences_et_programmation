@@ -7,7 +7,11 @@ Created on Wed Oct  2 23:06:45 2019
 """
 
 """
-This code computes the "distance" between 2 urls: url_start and url_stop
+Ce code permet de calculer le nombre de "bonds" entre deux urls: url_start and url_finish
+Le test est ici effectué avec des pages wikipédia pour vérifier si tous les articles de la 
+version anglaise de Wikipédia mènent à l'article «Philosophy». Plus précisément, 
+si l'on clique sur le premier lien de chaque article, on tombera, au bout d'un moment,
+sur l'article Philosophy. 
 """
 
 import requests
@@ -15,33 +19,33 @@ from bs4 import BeautifulSoup
 import urllib
 
 
-def find_link(url):
+def get_link(url):
     """
-    Returns the first wikipedia link found in the current page
+    Permet d'obtenir le premier lien trouver dans une page Wikipédia.
     """
     link = None
 
     content = requests.get(url)
     soup = BeautifulSoup(content.text, features="html.parser")
     
-    #  Select text paragraphs
-    paragraphs = soup.select("p")
-    for p in paragraphs:
-        x = p.find("a")
-        if x:
-            link = x.get('href')
+    #  Séléction d'un paragraphe de texte
+    paragraph = soup.select("p")
+    for p in paragraph:
+        a = p.find("a")
+        if a:
+            link = a.get('href')
             break
             
     if link:
-        # build full url
+        # Reconstruction d'une url complète
         link = urllib.parse.urljoin('https://en.wikipedia.org/', link)
 
     return link
 
 
-def search_urls(url_start, url_stop, max_iter=25):
+def go_urls(url_start, url_finish, max_iter=30):
     """
-    Builds the chain of urls.
+    Construction de la chaîne d'urls.
     """
     urls = []
 
@@ -52,28 +56,28 @@ def search_urls(url_start, url_stop, max_iter=25):
     urls.append(url_start)
 
     while True:
-        # find next link
-        link = find_link(urls[-1])
+        # Obtention du prochain lien à partir du dernier élément de la liste d'urls
+        link = get_link(urls[-1])
         if not link:
             urls = None
             break
 
         urls.append(link)
         
-        if urls[-1] == url_stop:
+        if urls[-1] == url_finish:
             if flag_remove_first:
                 urls.pop(0) 
-            print("distance between {} and {} is {}".format(urls[0], urls[-1], len(urls)))
+            print("\n Il faut {} bonds entre {} et {}".format(len(urls), urls[0], urls[-1]))
             break
         elif len(urls) > max_iter:
             if flag_remove_first:
                 urls.pop(0) 
-            print("STOP!!! The search {} and {} is too long ({} iter.)!".format(urls[0],
-                                                                                url_stop,
+            print("\n Arrêt ! La recherche entre {} et {} est trop longue (plus de {} bonds)!".format(urls[0],
+                                                                                url_finish,
                                                                                 max_iter))
             break
         elif link in urls[:-1]:
-            print("STOP!! We are looping. We pass twice in {}".format(link))
+            print("\n Arrêt ! La recherche tourne en boucle : deux passages sur {}".format(link))
             break
         else:
             continue
@@ -81,23 +85,23 @@ def search_urls(url_start, url_stop, max_iter=25):
     return urls
 
 
-if __name__ == '__main__':
+if __name__ == '__main__': 
 
     url_start = "https://en.wikipedia.org/wiki/Mathematics"
-    url_stop = "https://en.wikipedia.org/wiki/Philosophy"
-    urls = search_urls(url_start, url_stop)
+    url_finish = "https://en.wikipedia.org/wiki/Philosophy"
+    urls = go_urls(url_start, url_finish)
 
     url_start = "https://en.wikipedia.org/wiki/Molecular_biophysics"
-    urls = search_urls(url_start, url_stop)
+    urls = go_urls(url_start, url_finish)
 
-    # Test on random URL
-    print("Test on random URLs (/wiki/Special:Random)")
-    print("******************************************")
+    # Tests sur des urls Wikipédia aléatoires
+    print("\n")
+    print("\n Tests sur des URLs Wikipédia aléatoires (/wiki/Special:Random)")
+    
     
     url_start = "https://en.wikipedia.org/wiki/Special:Random"
    
-        
     for i in range(3):
-        urls = search_urls(url_start, url_stop)
+        urls = go_urls(url_start, url_finish)
         
-    print("That's All, Folks!")
+    print("\n Fin du programme ! \n")
